@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
+import { useRouter } from "next/router"
 import { CheckCircle, PlusCircle, UserPlus, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,13 @@ interface TeamMember {
   role: string
 }
 
+interface VolunteerRequest {
+  id: number
+  name: string
+  skills: string
+  status: "Pending" | "Approved" | "Rejected"
+}
+
 interface Project {
   id: number
   name: string
@@ -37,41 +45,16 @@ interface Project {
   tasks: Task[]
   teamMembers: TeamMember[]
   progress: number
+  volunteerRequests: VolunteerRequest[]
 }
 
 export default function ProjectManagement() {
-  const [project, setProject] = useState<Project>({
-    id: 1,
-    name: "Clean Water Initiative",
-    description: "Providing clean water to rural communities",
-    timeline: { start: "2023-01-01", end: "2023-12-31" },
-    tasks: [
-      {
-        id: 1,
-        name: "Site Survey",
-        assignedTo: "John Doe",
-        status: "Completed",
-      },
-      {
-        id: 2,
-        name: "Equipment Procurement",
-        assignedTo: "Jane Smith",
-        status: "In Progress",
-      },
-      {
-        id: 3,
-        name: "Community Training",
-        assignedTo: "Mike Johnson",
-        status: "Pending",
-      },
-    ],
-    teamMembers: [
-      { id: 1, name: "John Doe", role: "Project Manager" },
-      { id: 2, name: "Jane Smith", role: "Engineer" },
-      { id: 3, name: "Mike Johnson", role: "Community Liaison" },
-    ],
-    progress: 65,
-  })
+  const router = useRouter()
+  const { projectId } = router.query
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const backendURL = process.env.NEXT_PUBLIC_MY_BACKEND_URL
 
   const [newTask, setNewTask] = useState<Omit<Task, "id">>({
     name: "",
@@ -84,49 +67,153 @@ export default function ProjectManagement() {
     role: "",
   })
 
-  const addTask = () => {
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (!projectId) return // Ensure projectId is available before fetching
+      try {
+        const response = await fetch(`${backendURL}/api/projects/${projectId}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch project data")
+        }
+        const data = await response.json()
+        setProject(data)
+      } catch (err) {
+        setError("Error fetching project data")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProjectData()
+  }, [projectId])
+
+  const addTask = async () => {
+    if (!project) return
     const taskToAdd = {
       ...newTask,
       id: Date.now(),
     }
-    setProject({
-      ...project,
-      tasks: [...project.tasks, taskToAdd],
-    })
-    setNewTask({ name: "", assignedTo: "", status: "Pending" })
+
+    try {
+      const response = await fetch(
+        `${backendURL}/api/projects/${projectId}/addTasks`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(taskToAdd),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to add task")
+      }
+
+      const updatedProject = await response.json()
+      setProject(updatedProject)
+      setNewTask({ name: "", assignedTo: "", status: "Pending" })
+    } catch (err) {
+      console.error("Error adding task", err)
+    }
   }
 
-  const addTeamMember = () => {
+  const addTeamMember = async () => {
+    if (!project) return
     const memberToAdd = {
       ...newMember,
       id: Date.now(),
     }
-    setProject({
-      ...project,
-      teamMembers: [...project.teamMembers, memberToAdd],
-    })
-    setNewMember({ name: "", role: "" })
+
+    try {
+      const response = await fetch(
+        `${backendURL}/api/projects/${projectId}/addTeamMembers`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(memberToAdd),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to add team member")
+      }
+
+      const updatedProject = await response.json()
+      setProject(updatedProject)
+      setNewMember({ name: "", role: "" })
+    } catch (err) {
+      console.error("Error adding team member", err)
+    }
   }
 
-  const toggleTaskStatus = (taskId: number) => {
-    const updatedTasks = project.tasks.map((task) =>
-      task.id === taskId
-        ? {
-            ...task,
-            status: task.status === "Completed" ? "Pending" : "Completed",
-          }
-        : task
-    )
-    const completedTasks = updatedTasks.filter(
-      (task) => task.status === "Completed"
-    ).length
-    const newProgress = Math.round((completedTasks / updatedTasks.length) * 100)
-    setProject({
-      ...project,
-      tasks: updatedTasks,
-      progress: newProgress,
-    })
+  const toggleTaskStatus = async (taskId: number) => {
+    if (!project) return
+    const updatedTask = project.tasks.find((task) => task.id === taskId)
+
+    if (!updatedTask) return
+
+    const newStatus =
+      updatedTask.status === "Completed" ? "Pending" : "Completed"
+
+    try {
+      const response = await fetch(
+        `${backendURL}/api/projects/${projectId}/tasks/${taskId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to update task status")
+      }
+
+      const updatedProject = await response.json()
+      setProject(updatedProject)
+    } catch (err) {
+      console.error("Error updating task status", err)
+    }
   }
+
+  const handleVolunteerRequest = async (
+    requestId: number,
+    status: "Approved" | "Rejected"
+  ) => {
+    if (!project) return
+
+    try {
+      const response = await fetch(
+        `${backendURL}/api/projects/${projectId}/volunteerRequests/${requestId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to update volunteer request")
+      }
+
+      const updatedProject = await response.json()
+      setProject(updatedProject)
+    } catch (err) {
+      console.error("Error handling volunteer request", err)
+    }
+  }
+
+  // Handling loading and error states
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
+  if (!project) return <div>No project data available</div>
 
   return (
     <div className="container mx-auto p-4 space-y-8">
@@ -262,6 +349,60 @@ export default function ProjectManagement() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-semibold">
+            Volunteer Requests
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Skills</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {project.volunteerRequests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell>{request.name}</TableCell>
+                  <TableCell>{request.skills}</TableCell>
+                  <TableCell>{request.status}</TableCell>
+                  <TableCell>
+                    {request.status === "Pending" && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mr-2"
+                          onClick={() =>
+                            handleVolunteerRequest(request.id, "Approved")
+                          }
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleVolunteerRequest(request.id, "Rejected")
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

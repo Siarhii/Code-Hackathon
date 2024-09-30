@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useContext, useEffect, useState } from "react"
+import axios from "axios"
 import { ArrowRight, Calendar, PlusCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -16,77 +17,85 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 
+import { TokenRefresherContext } from "../../contexts/apiWrapper"
+
+//import { useToast } from "@/components/ui/use-toast"
+
 interface Project {
-  id: number
+  _id: string
   name: string
   description: string
   timeline: { start: string; end: string }
   tasks: any[]
-  resources: any[]
+  teamMembers: any[]
   progress: number
+  authors: { id: number; name: string; role: string }[]
 }
 
-// Dummy projects to simulate backend data
-const dummyProjects: Project[] = [
-  {
-    id: 1,
-    name: "Clean Water Initiative",
-    description: "Providing clean water to rural communities",
-    timeline: { start: "2023-01-01", end: "2023-12-31" },
-    tasks: [],
-    resources: [],
-    progress: 65,
-  },
-  {
-    id: 2,
-    name: "Education for All",
-    description: "Improving access to education in underprivileged areas",
-    timeline: { start: "2023-03-15", end: "2024-03-14" },
-    tasks: [],
-    resources: [],
-    progress: 40,
-  },
-  {
-    id: 3,
-    name: "Sustainable Agriculture",
-    description: "Promoting sustainable farming practices",
-    timeline: { start: "2023-06-01", end: "2024-05-31" },
-    tasks: [],
-    resources: [],
-    progress: 20,
-  },
-]
-
 export default function ProjectDashboard() {
+  const backendURL = process.env.NEXT_PUBLIC_MY_BACKEND_URL
   const [projects, setProjects] = useState<Project[]>([])
-  const [newProject, setNewProject] = useState<Omit<Project, "id">>({
+  const [newProject, setNewProject] = useState({
     name: "",
     description: "",
     timeline: { start: "", end: "" },
-    tasks: [],
-    resources: [],
-    progress: 0,
+    authors: [{ id: 1, name: "Current User", role: "Author" }], // Replace with actual user data
   })
+  const { makeRequest } = useContext(TokenRefresherContext)
+  //   const { toast } = useToast()
 
   useEffect(() => {
-    // Simulate fetching projects from backend
-    setProjects(dummyProjects)
+    fetchProjects()
   }, [])
 
-  const addProject = () => {
-    const projectToAdd = {
-      ...newProject,
-      id: Date.now(),
+  const fetchProjects = async () => {
+    try {
+      const response = await makeRequest(`/api/projects`, {
+        method: "GET",
+      })
+
+      // Check if response is an array and set it
+      if (Array.isArray(response)) {
+        setProjects(response) // Assuming response is an array of project objects
+      } else {
+        console.error("Expected an array but got:", response)
+        setProjects([]) // Fallback to an empty array
+      }
+    } catch (error) {
+      console.error("Error fetching projects:", error)
+      //   toast({
+      //     title: "Error",
+      //     description: "Failed to fetch projects. Please try again.",
+      //     variant: "destructive",
+      //   })
     }
-    setProjects([...projects, projectToAdd])
-    setNewProject({
-      name: "",
-      description: "",
-      timeline: { start: "", end: "" },
-      tasks: [],
-      resources: [],
-      progress: 0,
-    })
+  }
+
+  const addProject = async () => {
+    try {
+      const response = await axios.post(
+        `${backendURL}/api/projects/create`,
+        newProject
+      )
+      setProjects([...projects, response.data])
+      setNewProject({
+        name: "",
+        description: "",
+        timeline: { start: "", end: "" },
+        authors: [{ id: 1, name: "Current User", role: "Author" }], // Reset this as well
+      })
+      //   toast({
+      //     title: "Success",
+      //     description: "Project created successfully!",
+      //   })
+    } catch (error) {
+      console.error("Error creating project:", error)
+      //   toast({
+      //     title: "Error",
+      //     description: "Failed to create project. Please try again.",
+      //     variant: "destructive",
+      //   })
+    }
   }
 
   return (
@@ -172,7 +181,7 @@ export default function ProjectDashboard() {
               </TableHeader>
               <TableBody>
                 {projects.map((project) => (
-                  <TableRow key={project.id}>
+                  <TableRow key={project._id}>
                     <TableCell className="font-medium">
                       {project.name}
                     </TableCell>
@@ -181,7 +190,11 @@ export default function ProjectDashboard() {
                       <div className="flex items-center">
                         <Calendar className="mr-2 h-4 w-4" />
                         <span>
-                          {project.timeline.start} - {project.timeline.end}
+                          {new Date(
+                            project.timeline.start
+                          ).toLocaleDateString()}{" "}
+                          -{" "}
+                          {new Date(project.timeline.end).toLocaleDateString()}
                         </span>
                       </div>
                     </TableCell>
