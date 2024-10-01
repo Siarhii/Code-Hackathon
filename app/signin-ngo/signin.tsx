@@ -15,7 +15,7 @@ const SigninPage = () => {
 
   const handleGoogleSuccess = async (tokenResponse: any) => {
     try {
-      const res = await fetch(`${backendUrl}/api/auth/google-auth`, {
+      const res = await fetch(`${backendUrl}/api/auth/google-auth-ngo`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -120,12 +120,12 @@ const SigninPage = () => {
                 Login with Google
               </button>
               <p className="text-center text-base font-medium text-gray-600 dark:text-gray-300">
-                Don't you have an account?{" "}
+                Apply as an NGO{" "}
                 <Link
-                  href="/signup"
+                  href="/signup-ngo"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Sign up
+                  Create New NGO account
                 </Link>
               </p>
             </div>

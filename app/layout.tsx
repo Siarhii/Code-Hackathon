@@ -51,11 +51,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
               <div className="relative flex min-h-screen flex-col">
                 <SiteHeader />
                 <div className="flex-1">{children}</div>
-                <footer className="bg-gray-800 dark:bg-gray-950 text-white py-12 px-4">
+                <footer className="mt-12 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white py-12 px-4">
                   <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8">
                     <div>
                       <h3 className="text-lg font-semibold mb-4">SoulSeva</h3>
-                      <p className="text-gray-400">
+                      <p className="text-gray-600 dark:text-gray-400">
                         Connecting volunteers with impactful NGOs worldwide.
                       </p>
                     </div>
@@ -67,7 +67,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                         <li>
                           <Link
                             href="/about"
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           >
                             About Us
                           </Link>
@@ -75,7 +75,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                         <li>
                           <Link
                             href="/projects"
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           >
                             Projects
                           </Link>
@@ -83,7 +83,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                         <li>
                           <Link
                             href="/ngos"
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           >
                             NGOs
                           </Link>
@@ -91,7 +91,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                         <li>
                           <Link
                             href="/contact"
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           >
                             Contact
                           </Link>
@@ -103,16 +103,16 @@ export default function RootLayout({ children }: RootLayoutProps) {
                       <ul className="space-y-2">
                         <li>
                           <Link
-                            href="/privacy"
-                            className="text-gray-400 hover:text-white"
+                            href="#"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           >
                             Privacy Policy
                           </Link>
                         </li>
                         <li>
                           <Link
-                            href="/terms"
-                            className="text-gray-400 hover:text-white"
+                            href="#"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           >
                             Terms of Service
                           </Link>
@@ -121,8 +121,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold mb-4">Newsletter</h4>
-                      <p className="text-gray-400 mb-4">
-                        Stay updated with our latest opportunities
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Stay updated with our latest opportunities.
                       </p>
                       <div className="flex">
                         <Input
