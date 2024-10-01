@@ -137,7 +137,7 @@ const calculateTravelTime = async (
   userLoc: { lat: number; lon: number },
   ngoLoc: { lat: number; lon: number }
 ) => {
-  const apiKey = "5b3ce3597851110001cf6248972f8f7374794b05829ca58fe17c377e"
+  const apiKey = "5b3ce3597851110001cf6248db21a9fe42bb46ceb1c939913151ce1a"
   const response = await axios.post(
     "https://api.openrouteservice.org/v2/directions/driving-car",
     {
@@ -254,14 +254,17 @@ export default function VolunteerMatcher() {
       )
 
       try {
-        await axios.post("http://localhost:5000/api/volunteer", {
-          name: userName,
-          phone: userPhone,
-          skills: userSkills.split(",").map((skill) => skill.trim()),
-          location: userFormattedAddress,
-          availability: userAvailability,
-          appliedNGO: nearestNGO.name,
-        })
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_MY_BACKEND_URL}/api/volunteer`,
+          {
+            name: userName,
+            phone: userPhone,
+            skills: userSkills.split(",").map((skill) => skill.trim()),
+            location: userFormattedAddress,
+            availability: userAvailability,
+            appliedNGO: nearestNGO.name,
+          }
+        )
         setSuccess("You have successfully applied!")
       } catch (err) {
         console.error(err)
@@ -272,14 +275,21 @@ export default function VolunteerMatcher() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-teal-50 to-cyan-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center relative">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="bg-pattern" />
+      </div>
+      {/* Background Image */}
+      <div className="absolute inset-0 background-image" />
+
+      <div className="w-full max-w-4xl relative z-10">
         <h1 className="text-4xl font-bold text-teal-800 text-center mb-12">
           Find Your Perfect Volunteer Opportunity
         </h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-8">
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="bg-teal-600 text-white">
+            <CardHeader className="bg-teal-600 text-white text-center">
               <CardTitle className="text-2xl">Your Information</CardTitle>
               <CardDescription className="text-teal-100">
                 Help us find the best NGO match for you
@@ -363,11 +373,11 @@ export default function VolunteerMatcher() {
                 />
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex justify-center">
               <Button
                 onClick={findNearestNGO}
                 disabled={isLoading}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                className="w-full max-w-xs bg-teal-600 hover:bg-teal-700 text-white"
               >
                 {isLoading ? "Searching..." : "Find Nearest NGO"}
               </Button>
@@ -376,7 +386,7 @@ export default function VolunteerMatcher() {
 
           {nearestNGO && (
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="bg-cyan-600 text-white">
+              <CardHeader className="bg-cyan-600 text-white text-center">
                 <CardTitle className="text-2xl">Nearest NGO</CardTitle>
                 <CardDescription className="text-cyan-100">
                   Here's the NGO that best matches your profile
@@ -406,11 +416,11 @@ export default function VolunteerMatcher() {
                   </p>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex justify-center">
                 <Button
                   onClick={applyToNGO}
                   disabled={isLoading}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                  className="w-full max-w-xs bg-cyan-600 hover:bg-cyan-700 text-white"
                 >
                   {isLoading ? "Applying..." : "Apply to this NGO"}
                 </Button>

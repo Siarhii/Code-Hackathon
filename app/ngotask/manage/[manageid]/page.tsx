@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { useRouter } from "next/router"
+import React, { useContext, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { CheckCircle, PlusCircle, UserPlus, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+
+import { TokenRefresherContext } from "../../../../contexts/apiWrapper"
 
 interface Task {
   id: number
@@ -38,7 +40,7 @@ interface VolunteerRequest {
 }
 
 interface Project {
-  id: number
+  id: String
   name: string
   description: string
   timeline: { start: string; end: string }
@@ -50,11 +52,19 @@ interface Project {
 
 export default function ProjectManagement() {
   const router = useRouter()
-  const { projectId } = router.query
   const [project, setProject] = useState<Project | null>(null)
+  const [projectId, setProjectId] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { makeRequest } = useContext(TokenRefresherContext) ?? {}
   const backendURL = process.env.NEXT_PUBLIC_MY_BACKEND_URL
+  useEffect(() => {
+    const url = window.location.pathname
+    const id = url.split("/").pop() // This will get the last segment of the URL
+    if (id) {
+      setProjectId(id)
+    }
+  }, [])
 
   const [newTask, setNewTask] = useState<Omit<Task, "id">>({
     name: "",
@@ -95,23 +105,15 @@ export default function ProjectManagement() {
     }
 
     try {
-      const response = await fetch(
-        `${backendURL}/api/projects/${projectId}/addTasks`,
+      const response = (await makeRequest?.(
+        `/api/projects/${projectId}/addTasks`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(taskToAdd),
+          data: taskToAdd,
         }
-      )
+      )) ?? { error: "makeRequest is not available" }
 
-      if (!response.ok) {
-        throw new Error("Failed to add task")
-      }
-
-      const updatedProject = await response.json()
-      setProject(updatedProject)
+      setProject(response)
       setNewTask({ name: "", assignedTo: "", status: "Pending" })
     } catch (err) {
       console.error("Error adding task", err)
@@ -126,23 +128,15 @@ export default function ProjectManagement() {
     }
 
     try {
-      const response = await fetch(
-        `${backendURL}/api/projects/${projectId}/addTeamMembers`,
+      const response = (await makeRequest?.(
+        `/api/projects/${projectId}/addTeamMembers`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(memberToAdd),
+          data: memberToAdd,
         }
-      )
+      )) ?? { error: "makeRequest is not available" }
 
-      if (!response.ok) {
-        throw new Error("Failed to add team member")
-      }
-
-      const updatedProject = await response.json()
-      setProject(updatedProject)
+      setProject(response)
       setNewMember({ name: "", role: "" })
     } catch (err) {
       console.error("Error adding team member", err)
@@ -159,52 +153,36 @@ export default function ProjectManagement() {
       updatedTask.status === "Completed" ? "Pending" : "Completed"
 
     try {
-      const response = await fetch(
-        `${backendURL}/api/projects/${projectId}/tasks/${taskId}`,
+      const response = (await makeRequest?.(
+        `/api/projects/${projectId}/toggleTasks/${taskId}`, // Updated URL for toggling the task
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status: newStatus }),
+          data: { status: newStatus },
         }
-      )
+      )) ?? { error: "makeRequest is not available" }
 
-      if (!response.ok) {
-        throw new Error("Failed to update task status")
-      }
-
-      const updatedProject = await response.json()
-      setProject(updatedProject)
+      setProject(response)
     } catch (err) {
       console.error("Error updating task status", err)
     }
   }
 
   const handleVolunteerRequest = async (
-    requestId: number,
+    requestId: String,
     status: "Approved" | "Rejected"
   ) => {
     if (!project) return
 
     try {
-      const response = await fetch(
-        `${backendURL}/api/projects/${projectId}/volunteerRequests/${requestId}`,
+      const response = (await makeRequest?.(
+        `/api/projects/${projectId}/volunteerRequests/${requestId}`, // Updated URL for the volunteer request
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status }),
+          data: { status }, // Data object containing the new status
         }
-      )
+      )) ?? { error: "makeRequest is not available" }
 
-      if (!response.ok) {
-        throw new Error("Failed to update volunteer request")
-      }
-
-      const updatedProject = await response.json()
-      setProject(updatedProject)
+      setProject(response)
     } catch (err) {
       console.error("Error handling volunteer request", err)
     }
@@ -227,7 +205,17 @@ export default function ProjectManagement() {
             <div>
               <p className="text-sm font-medium">Timeline</p>
               <p className="text-sm text-muted-foreground">
-                {project.timeline.start} - {project.timeline.end}
+                {new Date(project.timeline.start).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}{" "}
+                -{" "}
+                {new Date(project.timeline.end).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
               </p>
             </div>
             <div className="text-right">
